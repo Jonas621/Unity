@@ -1,4 +1,4 @@
-using UnityEngine.Networking;
+        
 using System;
 using System.Collections;
 using System.Collections.Generic;
@@ -24,22 +24,6 @@ namespace UnityEngine.XR.Templates.MR
 
     public class GoalManager : MonoBehaviour
     {
-        [System.Serializable]
-        public class ScenarioData
-        {
-            public int id;
-            public string name;
-            public string description;
-            public string createdAt;
-            public string updatedAt;
-            public string json;
-        }
-
-        [System.Serializable]
-        public class PhaseJson
-        {
-            public string title;
-        }
         public enum OnboardingGoals
         {
             Empty,
@@ -54,7 +38,7 @@ namespace UnityEngine.XR.Templates.MR
         int m_CurrentGoalIndex = 0;
 
         [Serializable]
-        class Step
+        public class Step
         {
             [SerializeField]
             public GameObject stepObject;
@@ -66,7 +50,7 @@ namespace UnityEngine.XR.Templates.MR
         }
 
         [SerializeField]
-        List<Step> m_StepList = new List<Step>();
+        public List<Step> m_StepList = new List<Step>();
 
         [SerializeField]
         public TextMeshProUGUI m_StepButtonTextField;
@@ -113,6 +97,37 @@ namespace UnityEngine.XR.Templates.MR
         [SerializeField] private TextMeshProUGUI m_TimerText;
         [SerializeField] private AudioSource m_AudioClick;
 
+        [SerializeField] private Button m_ProtokollButton;
+        [SerializeField] private Button m_InformationenButton;
+        [SerializeField] private Button m_ChatButton;
+        [SerializeField] private GameObject m_Card3;
+        [SerializeField] private GameObject m_HandMenuRootLeft;
+        [SerializeField] private GameObject m_BackgroundLeft;
+        [SerializeField] private GameObject m_BackgroundRight;
+        [SerializeField] private GameObject m_BackgroundTop;
+        [SerializeField] private GameObject m_BackgroundBottom;
+        [SerializeField] private GameObject m_Optionen;
+        [SerializeField] private GameObject m_BackgroundTimer;
+        // Felder für Card 3 Startposition und -rotation
+        private Vector3 m_Card3StartPosition;
+        private Quaternion m_Card3StartRotation;
+        private bool m_Card3PositionSaved = false;
+
+        private void HighlightActiveButton(Button activeButton)
+        {
+            foreach (var btn in new[] { m_ProtokollButton, m_InformationenButton, m_ChatButton })
+            {
+                if (btn != null)
+                {
+                    ColorBlock cb = btn.colors;
+                    cb.normalColor = (btn == activeButton) ? new Color32(0, 200, 0, 255) : new Color32(0x1D, 0x80, 0xD4, 0xFF);
+                    cb.selectedColor = cb.normalColor;
+                    cb.highlightedColor = cb.normalColor;
+                    btn.colors = cb;
+                }
+            }
+        }
+
         private float m_CurrentTimer;
         private bool m_TimerRunning;
         GameObject m_PinErrorText;
@@ -135,6 +150,9 @@ namespace UnityEngine.XR.Templates.MR
             m_OnboardingGoals.Enqueue(endGoal);
 
             m_CurrentGoal = m_OnboardingGoals.Dequeue();
+
+            // Verzögerte Skybox-Ausblendung und Passthrough aktivieren
+            StartCoroutine(DelayedEnvironmentFade());
 
             // Alle Cards zu Beginn unsichtbar machen, außer der ersten
             for (int i = 0; i < m_StepList.Count; i++)
@@ -170,38 +188,105 @@ namespace UnityEngine.XR.Templates.MR
                     m_PassthroughToggle.isOn = false;
             }
 
-            if (m_LearnButton != null)
+            // if (m_LearnButton != null)
+            // {
+            //     m_LearnButton.GetComponent<Button>().onClick.AddListener(OpenModal); ;
+            //     m_LearnButton.SetActive(false);
+            // }
+
+            // if (m_LearnModal != null)
+            // {
+            //     m_LearnModal.transform.localScale = Vector3.zero;
+            // }
+
+            // if (m_LearnModalButton != null)
+            // {
+            //     m_LearnModalButton.onClick.AddListener(CloseModal);
+            // }
+
+//             if (m_ObjectSpawner == null)
+//             {
+// #if UNITY_2023_1_OR_NEWER
+//                 m_ObjectSpawner = FindAnyObjectByType<ObjectSpawner>();
+// #else
+//                 m_ObjectSpawner = FindObjectOfType<ObjectSpawner>();
+// #endif
+//             }
+
+//             if (m_FeatureController == null)
+//             {
+// #if UNITY_2023_1_OR_NEWER
+//                 m_FeatureController = FindAnyObjectByType<ARFeatureController>();
+// #else
+//                 m_FeatureController = FindObjectOfType<ARFeatureController>();
+// #endif
+//             }
+
+            // Button-Listener für Chat absenden
+            var chatStep = m_StepList.Count > 2 ? m_StepList[2].stepObject : null;
+            if (chatStep != null)
             {
-                m_LearnButton.GetComponent<Button>().onClick.AddListener(OpenModal); ;
-                m_LearnButton.SetActive(false);
+                var sendButton = chatStep.transform.Find("Background_Bottom/Background_Chat/Button_Nachricht_senden")?.GetComponent<Button>();
+                var inputField = chatStep.transform.Find("Background_Bottom/Background_Chat/InputField_Chat")?.GetComponent<TMP_InputField>();
+                var chatDisplay = chatStep.transform.Find("Background_Bottom/Background_Chat/Scroll_Chat/Viewport/Content")?.GetComponent<TextMeshProUGUI>();
+
+                if (sendButton != null && inputField != null && chatDisplay != null)
+                {
+                    sendButton.onClick.AddListener(() =>
+                    {
+                        if (!string.IsNullOrWhiteSpace(inputField.text))
+                        {
+                            chatDisplay.text += string.IsNullOrEmpty(chatDisplay.text) ? inputField.text : "\n" + inputField.text;
+                            inputField.text = "";
+                            UnityEngine.EventSystems.EventSystem.current.SetSelectedGameObject(null);
+                            // inputField.ActivateInputField(); 
+							// deaktiviert, damit nach dem Senden nicht automatisch die Tastatur wieder erscheint
+                        }
+                    });
+                }
+
+            // Zusätzliche onClick-Listener für die vorgefertigten Buttons (Ja/Nein/Unsicher)
+            var predefinedYes = chatStep.transform.Find("Background_Bottom/Background_Chat/Button_vorgefertigt_Ja/Text (TMP)")?.GetComponent<TextMeshProUGUI>();
+            var predefinedNo = chatStep.transform.Find("Background_Bottom/Background_Chat/Button_vorgefertigt_Nein/Text (TMP)")?.GetComponent<TextMeshProUGUI>();
+            var predefinedUnsure = chatStep.transform.Find("Background_Bottom/Background_Chat/Button_vorgefertigt_Unsicher/Text (TMP)")?.GetComponent<TextMeshProUGUI>();
+
+            var yesBtn = chatStep.transform.Find("Background_Bottom/Background_Chat/Button_vorgefertigt_Ja")?.GetComponent<Button>();
+            var noBtn = chatStep.transform.Find("Background_Bottom/Background_Chat/Button_vorgefertigt_Nein")?.GetComponent<Button>();
+            var unsureBtn = chatStep.transform.Find("Background_Bottom/Background_Chat/Button_vorgefertigt_Unsicher")?.GetComponent<Button>();
+
+            if (yesBtn != null && predefinedYes != null && chatDisplay != null)
+            {
+                yesBtn.onClick.AddListener(() =>
+                {
+                    if (!string.IsNullOrWhiteSpace(predefinedYes.text))
+                    {
+                        chatDisplay.text += string.IsNullOrEmpty(chatDisplay.text) ? predefinedYes.text : "\nJonas: " + predefinedYes.text;
+                    }
+                });
             }
 
-            if (m_LearnModal != null)
+            if (noBtn != null && predefinedNo != null && chatDisplay != null)
             {
-                m_LearnModal.transform.localScale = Vector3.zero;
+                noBtn.onClick.AddListener(() =>
+                {
+                    if (!string.IsNullOrWhiteSpace(predefinedNo.text))
+                    {
+                        chatDisplay.text += string.IsNullOrEmpty(chatDisplay.text) ? predefinedNo.text : "\n" + predefinedNo.text;
+                    }
+                });
             }
 
-            if (m_LearnModalButton != null)
+            if (unsureBtn != null && predefinedUnsure != null && chatDisplay != null)
             {
-                m_LearnModalButton.onClick.AddListener(CloseModal);
+                unsureBtn.onClick.AddListener(() =>
+                {
+                    if (!string.IsNullOrWhiteSpace(predefinedUnsure.text))
+                    {
+                        chatDisplay.text += string.IsNullOrEmpty(chatDisplay.text) ? predefinedUnsure.text : "\n" + predefinedUnsure.text;
+                    }
+                });
             }
-
-            if (m_ObjectSpawner == null)
-            {
-#if UNITY_2023_1_OR_NEWER
-                m_ObjectSpawner = FindAnyObjectByType<ObjectSpawner>();
-#else
-                m_ObjectSpawner = FindObjectOfType<ObjectSpawner>();
-#endif
-            }
-
-            if (m_FeatureController == null)
-            {
-#if UNITY_2023_1_OR_NEWER
-                m_FeatureController = FindAnyObjectByType<ARFeatureController>();
-#else
-                m_FeatureController = FindObjectOfType<ARFeatureController>();
-#endif
+            
             }
         }
 
@@ -292,14 +377,40 @@ namespace UnityEngine.XR.Templates.MR
                 // Wenn Card 3 aktiviert wird, setze Grab-Proxy auf die Position der vorherigen Card
                 if (m_CurrentGoalIndex == 2) // Card 3
                 {
-                    var previousCard = m_StepList[m_CurrentGoalIndex - 1].stepObject;
-                    var grabProxy = GameObject.Find("Card3_GrabProxy");
-
-                    if (grabProxy != null && previousCard != null)
+                    // Startposition des Card3_GrabProxy speichern
+                    if (!m_Card3PositionSaved)
                     {
-                        grabProxy.transform.position = previousCard.transform.position;
-                        grabProxy.transform.rotation = previousCard.transform.rotation;
+                        var grabProxy = GameObject.Find("Card3_GrabProxy");
+                        if (grabProxy != null)
+                        {
+                            m_Card3StartPosition = grabProxy.transform.position;
+                            m_Card3StartRotation = grabProxy.transform.rotation;
+                            m_Card3PositionSaved = true;
+                            Debug.Log("[DEBUG] Startposition von Card3_GrabProxy gespeichert: " + m_Card3StartPosition);
+                        }
+                        else
+                        {
+                            Debug.LogWarning("[DEBUG] Card3_GrabProxy nicht gefunden – Startposition nicht gespeichert.");
+                        }
                     }
+                    // TippPanel zu Beginn ausblenden
+                    var card3 = m_StepList[2].stepObject;
+                    var tippPanel = card3.transform.Find("Background_Tipp");
+                    if (tippPanel != null)
+                    {
+                        tippPanel.gameObject.SetActive(false);
+                    }
+                    var previousCard = m_StepList[m_CurrentGoalIndex - 1].stepObject;
+                    var grabProxy2 = GameObject.Find("Card3_GrabProxy");
+
+                    if (grabProxy2 != null && previousCard != null)
+                    {
+                        grabProxy2.transform.position = previousCard.transform.position;
+                        grabProxy2.transform.rotation = previousCard.transform.rotation;
+                    }
+                    // Timer für Card 3 starten
+                    StartTimerFromSeconds(3660); // 1 Stunde + 1 Minute
+                    Debug.Log("[DEBUG] Timer für Card 3 gestartet: 3660 Sekunden");
                 }
                 var continueButton = GameObject.Find("Text_Button_Continue");
                 if (continueButton != null)
@@ -324,7 +435,16 @@ namespace UnityEngine.XR.Templates.MR
 
                 Transform pinKeyboard = currentStep.Find("PinKeyBoard");
                 if (pinKeyboard != null)
+                {
                     pinKeyboard.gameObject.SetActive(true);
+                    // Fokus auf das Chat-Eingabefeld setzen, damit die Tastatur erscheint
+                    var chatField = m_StepList[m_CurrentGoalIndex].stepObject.transform.Find("Background_Bottom/Background_Chat/ChatInputField")?.GetComponent<TMPro.TMP_InputField>();
+                    if (chatField != null)
+                    {
+                        chatField.Select();
+                        chatField.ActivateInputField();
+                    }
+                }
 
                 m_StepButtonTextField.text = m_StepList[m_CurrentGoalIndex].buttonText;
                 m_SkipButton.SetActive(m_StepList[m_CurrentGoalIndex].includeSkipButton);
@@ -351,8 +471,11 @@ namespace UnityEngine.XR.Templates.MR
                     var background = GameObject.Find("Background");
                     if (background != null)
                         background.SetActive(false);
-
-                    StartTimerFromSeconds(200);
+                    
+                    if (m_HandMenuRootLeft != null)
+                    {
+                        m_HandMenuRootLeft.SetActive(true);
+                    }
                 }
             }
             else
@@ -363,17 +486,10 @@ namespace UnityEngine.XR.Templates.MR
 
             if (m_CurrentGoal.CurrentGoal == OnboardingGoals.FindSurfaces)
             {
-                if (m_FadeMaterial != null)
-                    m_FadeMaterial.FadeSkybox(true);
-
-                if (m_PassthroughToggle != null)
-                    m_PassthroughToggle.isOn = true;
-
                 if (m_LearnButton != null)
                 {
                     m_LearnButton.SetActive(true);
                 }
-
                 // StartCoroutine(TurnOnPlanes(true));
             }
             else if (m_CurrentGoal.CurrentGoal == OnboardingGoals.TapSurface)
@@ -397,7 +513,7 @@ namespace UnityEngine.XR.Templates.MR
         {
             TimeSpan t = TimeSpan.FromSeconds(seconds);
             if (m_TimerText != null)
-                m_TimerText.text = $"{t.Minutes:D2}:{t.Seconds:D2}";
+                m_TimerText.text = $"{t.Hours:D2}:{t.Minutes:D2}:{t.Seconds:D2}";
         }
 
         public IEnumerator TurnOnPlanes(bool visualize)
@@ -679,27 +795,17 @@ namespace UnityEngine.XR.Templates.MR
                     pin += input.text;
                 }
             }
-            Debug.Log($"[PIN] Bestätigte Eingabe: {pin}");
-            // API-Request für Szenario per PIN
-            RequestScenarioFromPin(pin);
-        }
 
-        public void RequestScenarioFromPin(string pin)
-        {
-            StartCoroutine(GetScenarioByPin(pin));
-        }
-
-        private IEnumerator GetScenarioByPin(string pin)
-        {
-            string url = $"http://192.168.0.145:3000/api/course/pin/{pin}";
-            UnityWebRequest request = UnityWebRequest.Get(url);
-
-            yield return request.SendWebRequest();
-
-            if (request.result != UnityWebRequest.Result.Success)
+    Debug.Log($"[PIN] Bestätigte Eingabe: {pin}");
+    // Hier könntest du später eine PIN-Validierung oder Weiterleitung einbauen
+            if (pin == "1234")
             {
-                Debug.LogError($"Fehler beim API-Request: {request.error}");
-                // Fehleranzeige wie bei falscher PIN
+                Debug.Log("[PIN] korrekt – Card 3 wird freigeschaltet.");
+                ForceCompleteGoal(); // <- aktiviert nächste Card
+            }
+            else
+            {
+                Debug.LogWarning("[PIN] Falsche Eingabe – keine Freischaltung.");
                 if (m_PinErrorText != null)
                 {
                     m_PinErrorText.SetActive(true);
@@ -707,7 +813,8 @@ namespace UnityEngine.XR.Templates.MR
                         StopCoroutine(m_HideErrorRoutine);
                     m_HideErrorRoutine = StartCoroutine(HidePinErrorAfterDelay());
                 }
-                // Eingabefelder zurücksetzen
+
+                // Zurücksetzen der Eingabe
                 for (int i = 1; i <= 4; i++)
                 {
                     var input = m_StepList[m_CurrentGoalIndex].stepObject.transform.Find($"Pin_eingabefeld_{i}")?.GetComponent<TMP_InputField>();
@@ -716,92 +823,9 @@ namespace UnityEngine.XR.Templates.MR
                         input.text = "";
                     }
                 }
+
+                // Fokus zurück auf das erste Feld setzen
                 FocusFirstPinField();
-            }
-            else
-            {
-                string jsonText = request.downloadHandler.text;
-                Debug.Log("[API] Antwort erhalten: " + jsonText);
-
-                ScenarioData scenario = JsonUtility.FromJson<ScenarioData>(jsonText);
-
-                if (!string.IsNullOrEmpty(scenario.json))
-                {
-                    Debug.Log($"[API] Szenario JSON: {scenario.json}");
-
-                    PhaseJson phase = JsonUtility.FromJson<PhaseJson>(scenario.json);
-
-                    if (phase != null && !string.IsNullOrEmpty(phase.title))
-                    {
-                        Debug.Log($"[API] Geladener Phasen-Titel: {phase.title}");
-
-                        // Phase-Titel im UI der Card3 anzeigen:
-                        var card3 = m_StepList[2].stepObject;
-                        Transform titelTransform = card3.transform.Find("Background_Top/Titel");
-                        if (titelTransform != null)
-                        {
-                            var titelText = titelTransform.GetComponent<TextMeshProUGUI>();
-                            if (titelText != null)
-                            {
-                                titelText.text = $"{phase.title}";
-                            }
-                            else
-                            {
-                                Debug.LogWarning("[API] Kein TextMeshProUGUI an 'Titel' gefunden.");
-                            }
-                        }
-                        else
-                        {
-                            Debug.LogWarning("[API] Kein 'Titel'-Objekt unter Background_Top gefunden.");
-                        }
-                        // PIN korrekt, nächste Card aktivieren
-                        ForceCompleteGoal();
-                    }
-                    else
-                    {
-                        Debug.LogWarning("[API] Keine gültige Phase gefunden.");
-                        // Fehleranzeige wie bei falscher PIN
-                        if (m_PinErrorText != null)
-                        {
-                            m_PinErrorText.SetActive(true);
-                            if (m_HideErrorRoutine != null)
-                                StopCoroutine(m_HideErrorRoutine);
-                            m_HideErrorRoutine = StartCoroutine(HidePinErrorAfterDelay());
-                        }
-                        // Eingabefelder zurücksetzen
-                        for (int i = 1; i <= 4; i++)
-                        {
-                            var input = m_StepList[m_CurrentGoalIndex].stepObject.transform.Find($"Pin_eingabefeld_{i}")?.GetComponent<TMP_InputField>();
-                            if (input != null)
-                            {
-                                input.text = "";
-                            }
-                        }
-                        FocusFirstPinField();
-                    }
-                }
-                else
-                {
-                    Debug.LogWarning("[API] Kein Szenario JSON vorhanden.");
-                    // Fehleranzeige wie bei falscher PIN
-                    if (m_PinErrorText != null)
-                    {
-                        m_PinErrorText.SetActive(true);
-                        if (m_HideErrorRoutine != null)
-                            StopCoroutine(m_HideErrorRoutine);
-                        m_HideErrorRoutine = StartCoroutine(HidePinErrorAfterDelay());
-                    }
-                    // Eingabefelder zurücksetzen
-                    for (int i = 1; i <= 4; i++)
-                    {
-                        var input = m_StepList[m_CurrentGoalIndex].stepObject.transform.Find($"Pin_eingabefeld_{i}")?.GetComponent<TMP_InputField>();
-                        if (input != null)
-                        {
-                            input.text = "";
-                        }
-                    }
-                    FocusFirstPinField();
-                }
             }
         }
 
@@ -852,6 +876,14 @@ namespace UnityEngine.XR.Templates.MR
             {
                 Debug.LogWarning("[DEBUG] Informationen NICHT gefunden");
             }
+            // Chat Panel ausblenden
+            var chat = card3.transform.Find("Background_Bottom/Background_Chat");
+            if (chat == null)
+                chat = FindDeepChild(card3.transform, "Background_Chat");
+            if (chat != null)
+                chat.gameObject.SetActive(false);
+
+            HighlightActiveButton(m_ProtokollButton);
         }
 
         public void ShowInformationen()
@@ -895,6 +927,54 @@ namespace UnityEngine.XR.Templates.MR
             {
                 Debug.LogWarning("[DEBUG] Informationen NICHT gefunden");
             }
+            // Chat Panel ausblenden
+            var chat = card3.transform.Find("Background_Bottom/Background_Chat");
+            if (chat == null)
+                chat = FindDeepChild(card3.transform, "Background_Chat");
+            if (chat != null)
+                chat.gameObject.SetActive(false);
+
+            HighlightActiveButton(m_InformationenButton);
+        }
+
+        public void ShowChat()
+        {
+            Debug.Log("[DEBUG] ShowChat() aufgerufen");
+            if (m_StepList.Count <= 2)
+            {
+                Debug.LogWarning("[DEBUG] m_StepList hat weniger als 3 Einträge.");
+                return;
+            }
+
+            var card3 = m_StepList[2].stepObject;
+            var chat = card3.transform.Find("Background_Bottom/Background_Chat");
+            var infos = card3.transform.Find("Background_Bottom/Background_Informationen");
+            var protokoll = card3.transform.Find("Background_Bottom/Background_Protokoll");
+
+            if (chat == null)
+                chat = FindDeepChild(card3.transform, "Background_Chat");
+            if (infos == null)
+                infos = FindDeepChild(card3.transform, "Background_Informationen");
+            if (protokoll == null)
+                protokoll = FindDeepChild(card3.transform, "Background_Protokoll");
+
+            if (chat != null)
+            {
+                chat.gameObject.SetActive(true);
+                Debug.Log("[DEBUG] Chat aktiviert");
+            }
+            else
+            {
+                Debug.LogWarning("[DEBUG] Chat NICHT gefunden");
+            }
+
+            if (infos != null)
+                infos.gameObject.SetActive(false);
+
+            if (protokoll != null)
+                protokoll.gameObject.SetActive(false);
+
+            HighlightActiveButton(m_ChatButton);
         }
 
         // Hilfsmethode zum rekursiven Finden eines Kinds mit Namen
@@ -910,9 +990,137 @@ namespace UnityEngine.XR.Templates.MR
             }
             return null;
         }
-        
+
+        /// <summary>
+        /// Blendet das TippPanel in Card 3 (m_StepList[2]) ein/aus.
+        /// </summary>
+        public void ToggleTippPanel()
+        {
+            if (m_StepList.Count <= 2)
+            {
+                Debug.LogWarning("[TIPP] m_StepList hat weniger als 3 Einträge.");
+                return;
+            }
+            var card3 = m_StepList[2].stepObject;
+            var tippPanel = card3.transform.Find("Background_Tipp");
+            if (tippPanel == null)
+            {
+                Debug.LogWarning("[TIPP] TippPanel nicht gefunden.");
+                return;
+            }
+
+            bool isActive = tippPanel.gameObject.activeSelf;
+            tippPanel.gameObject.SetActive(!isActive);
+            // Chat Panel ausblenden
+            // var chat = card3.transform.Find("Background_Bottom/Background_Chat");
+            // if (chat == null)
+            //     chat = FindDeepChild(card3.transform, "Background_Chat");
+            // if (chat != null)
+            //     chat.gameObject.SetActive(false);
+        }
         // (SetUIVisible removed)
+
+        public void OnChatFieldSelected()
+        {
+            Debug.Log("[Keyboard] ChatField wurde selektiert");
+            TouchScreenKeyboard.Open("", TouchScreenKeyboardType.Default);
+        }
+
+        public void OnChatFieldDeselected()
+        {
+            Debug.Log("[Keyboard] ChatField wurde deselektiert");
+            // In der Regel schließt sich das Keyboard automatisch
+			//TouchScreenKeyboard.Close("", TouchScreenKeyboardType.Default);
+        }
+        
+        public void ToggleCard3Visibility(bool visible)
+        {
+            if (m_Card3 != null)
+                m_Card3.SetActive(!visible);
+        }
+
+        // Zusätzliche Sichtbarkeits-Toggle-Methoden für Hintergründe und Optionen
+        public void ToggleBackgroundLeftVisibility(bool visible)
+        {
+            if (m_BackgroundLeft != null)
+                m_BackgroundLeft.SetActive(!visible);
+        }
+
+        public void ToggleBackgroundRightVisibility(bool visible)
+        {
+            if (m_BackgroundRight != null)
+                m_BackgroundRight.SetActive(!visible);
+        }
+
+        public void ToggleBackgroundTopVisibility(bool visible)
+        {
+            if (m_BackgroundTop != null)
+                m_BackgroundTop.SetActive(!visible);
+        }
+
+        public void ToggleBackgroundBottomVisibility(bool visible)
+        {
+            if (m_BackgroundBottom != null)
+                m_BackgroundBottom.SetActive(!visible);
+        }
+
+        public void ToggleOptionenVisibility(bool visible)
+        {
+            if (m_Optionen != null)
+                m_Optionen.SetActive(!visible);
+        }
+		
+		public void ToggleBackgroundTimerVisibility(bool visible)
+        {
+            if (m_BackgroundTimer != null)
+                m_BackgroundTimer.SetActive(!visible);
+        }
+
+		// Verzögerter Skybox-Fade und Passthrough-Toggle
+        private IEnumerator DelayedEnvironmentFade()
+        {
+            yield return new WaitForSeconds(0.2f);
+            if (m_FadeMaterial != null)
+                m_FadeMaterial.FadeSkybox(true);
+
+            if (m_PassthroughToggle != null)
+                m_PassthroughToggle.isOn = true;
+        }
+        
+        // Die ursprüngliche Methode wurde auskommentiert, da Card 3 nicht direkt positioniert wird,
+        // sondern über den Card3_GrabProxy gesteuert wird. Stattdessen setzen wir nun den Proxy zurück.
+        /*
+        public void ResetCard3Position()
+        {
+            if (m_StepList.Count > 2 && m_StepList[2].stepObject != null && m_Card3PositionSaved)
+            {
+                m_StepList[2].stepObject.transform.position = m_Card3StartPosition;
+                m_StepList[2].stepObject.transform.rotation = m_Card3StartRotation;
+                Debug.Log("[DEBUG] Card 3 zurückgesetzt auf Position: " + m_Card3StartPosition);
+            }
+        }
+        */
+
+        /// <summary>
+        /// Setzt die Position und Rotation des GrabProxys von Card 3 zurück, damit Card 3 beim nächsten Öffnen korrekt platziert wird.
+        /// </summary>
+        public void ResetCard3Proxy()
+        {
+            var grabProxy = GameObject.Find("Card3_GrabProxy");
+            if (grabProxy != null && m_Card3PositionSaved)
+            {
+                grabProxy.transform.position = m_Card3StartPosition;
+                grabProxy.transform.rotation = m_Card3StartRotation;
+                Debug.Log("[DEBUG] GrabProxy zurückgesetzt auf: " + grabProxy.transform.position);
+            }
+            else
+            {
+                Debug.LogWarning("[DEBUG] GrabProxy nicht gefunden oder Startposition nicht gespeichert.");
+            }
+        }
     }
 }
-
-       
+        
+        
+        
+        

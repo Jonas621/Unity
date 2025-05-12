@@ -582,6 +582,8 @@ MonoBehaviour:
   m_VideoPlayerToggle: {fileID: 0}
   m_FeatureController: {fileID: 9101303414712244912}
   m_ObjectSpawner: {fileID: 3339367952642848919}
+  m_TimerText: {fileID: 0}
+  m_AudioClick: {fileID: 0}
 --- !u!1 &2662485833752745289
 GameObject:
   m_ObjectHideFlags: 0
