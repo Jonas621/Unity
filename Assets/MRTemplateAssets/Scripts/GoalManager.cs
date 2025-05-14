@@ -95,6 +95,7 @@ namespace UnityEngine.XR.Templates.MR
         ObjectSpawner m_ObjectSpawner;
 
         [SerializeField] private TextMeshProUGUI m_TimerText;
+        [SerializeField] private TextMeshProUGUI m_OverallTimerText;
         [SerializeField] private AudioSource m_AudioClick;
 
         [SerializeField] private Button m_ProtokollButton;
@@ -120,7 +121,7 @@ namespace UnityEngine.XR.Templates.MR
                 if (btn != null)
                 {
                     ColorBlock cb = btn.colors;
-                    cb.normalColor = (btn == activeButton) ? new Color32(0, 200, 0, 255) : new Color32(0x1D, 0x80, 0xD4, 0xFF);
+                    cb.normalColor = (btn == activeButton) ? new Color32(15, 85, 160, 255) : new Color32(255, 255, 255, 255);
                     cb.selectedColor = cb.normalColor;
                     cb.highlightedColor = cb.normalColor;
                     btn.colors = cb;
@@ -130,6 +131,8 @@ namespace UnityEngine.XR.Templates.MR
 
         private float m_CurrentTimer;
         private bool m_TimerRunning;
+        private float m_OverallTimer;
+        private bool m_OverallTimerRunning;
         GameObject m_PinErrorText;
         Coroutine m_HideErrorRoutine;
 
@@ -185,7 +188,7 @@ namespace UnityEngine.XR.Templates.MR
                 m_FadeMaterial.FadeSkybox(false);
 
                 if (m_PassthroughToggle != null)
-                    m_PassthroughToggle.isOn = false;
+                    m_PassthroughToggle.isOn = true;
             }
 
             // if (m_LearnButton != null)
@@ -312,6 +315,12 @@ namespace UnityEngine.XR.Templates.MR
             {
                 ProcessGoals();
             }
+            
+            if (m_OverallTimerRunning)
+            {
+                m_OverallTimer += Time.deltaTime;
+                UpdateOverallTimerText(m_OverallTimer);
+            }
 
             if (m_TimerRunning)
             {
@@ -377,22 +386,23 @@ namespace UnityEngine.XR.Templates.MR
                 // Wenn Card 3 aktiviert wird, setze Grab-Proxy auf die Position der vorherigen Card
                 if (m_CurrentGoalIndex == 2) // Card 3
                 {
-                    // Startposition des Card3_GrabProxy speichern
+                    // Startposition des GrabHandle speichern
                     if (!m_Card3PositionSaved)
                     {
-                        var grabProxy = GameObject.Find("Card3_GrabProxy");
-                        if (grabProxy != null)
+                        var grabHandle = GameObject.Find("GrabHandle");
+                        if (grabHandle != null)
                         {
-                            m_Card3StartPosition = grabProxy.transform.position;
-                            m_Card3StartRotation = grabProxy.transform.rotation;
+                            m_Card3StartPosition = grabHandle.transform.position;
+                            m_Card3StartRotation = grabHandle.transform.rotation;
                             m_Card3PositionSaved = true;
-                            Debug.Log("[DEBUG] Startposition von Card3_GrabProxy gespeichert: " + m_Card3StartPosition);
+                            Debug.Log("[DEBUG] Startposition von GrabHandle gespeichert: " + m_Card3StartPosition);
                         }
                         else
                         {
-                            Debug.LogWarning("[DEBUG] Card3_GrabProxy nicht gefunden – Startposition nicht gespeichert.");
+                            Debug.LogWarning("[DEBUG] GrabHandle nicht gefunden – Startposition nicht gespeichert.");
                         }
                     }
+                    m_OverallTimerRunning = true;
                     // TippPanel zu Beginn ausblenden
                     var card3 = m_StepList[2].stepObject;
                     var tippPanel = card3.transform.Find("Background_Tipp");
@@ -409,7 +419,7 @@ namespace UnityEngine.XR.Templates.MR
                         grabProxy2.transform.rotation = previousCard.transform.rotation;
                     }
                     // Timer für Card 3 starten
-                    StartTimerFromSeconds(200);
+                    StartTimerFromSeconds(3660);
                     Debug.Log("[DEBUG] Timer für Card 3 gestartet: 200 Sekunden");
                 }
                 var continueButton = GameObject.Find("Text_Button_Continue");
@@ -513,7 +523,14 @@ namespace UnityEngine.XR.Templates.MR
         {
             TimeSpan t = TimeSpan.FromSeconds(seconds);
             if (m_TimerText != null)
-                m_TimerText.text = $"{t.Minutes:D2}:{t.Seconds:D2}";
+                m_TimerText.text = $"{t.Hours:D2}:{t.Minutes:D2}:{t.Seconds:D2}";
+        }
+        
+        void UpdateOverallTimerText(float seconds)
+        {
+            TimeSpan t = TimeSpan.FromSeconds(seconds);
+            if (m_OverallTimerText != null)
+                m_OverallTimerText.text = $"{t.Hours:D2}:{t.Minutes:D2}:{t.Seconds:D2}";
         }
 
         public IEnumerator TurnOnPlanes(bool visualize)
@@ -1106,16 +1123,16 @@ namespace UnityEngine.XR.Templates.MR
         /// </summary>
         public void ResetCard3Proxy()
         {
-            var grabProxy = GameObject.Find("Card3_GrabProxy");
-            if (grabProxy != null && m_Card3PositionSaved)
+            var grabHandle = GameObject.Find("GrabHandle");
+            if (grabHandle != null && m_Card3PositionSaved)
             {
-                grabProxy.transform.position = m_Card3StartPosition;
-                grabProxy.transform.rotation = m_Card3StartRotation;
-                Debug.Log("[DEBUG] GrabProxy zurückgesetzt auf: " + grabProxy.transform.position);
+                grabHandle.transform.position = m_Card3StartPosition;
+                grabHandle.transform.rotation = m_Card3StartRotation;
+                Debug.Log("[DEBUG] GrabHandle zurückgesetzt auf: " + grabHandle.transform.position);
             }
             else
             {
-                Debug.LogWarning("[DEBUG] GrabProxy nicht gefunden oder Startposition nicht gespeichert.");
+                Debug.LogWarning("[DEBUG] GrabHandle nicht gefunden oder Startposition nicht gespeichert.");
             }
         }
     }

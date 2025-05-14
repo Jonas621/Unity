@@ -44,10 +44,11 @@ public class DecisionManager : MonoBehaviour
         Debug.Log("Ausgewählt: Option " + option);
 
         Color32 defaultColor = new Color32(26, 123, 204, 255);
+        Color32 selectedColor = new Color32(15, 85, 160, 255); // #0F55A0
 
         // Highlight
-        buttonOption1.image.color = (option == 1) ? Color.green : defaultColor;
-        buttonOption2.image.color = (option == 2) ? Color.green : defaultColor;
+        buttonOption1.image.color = (option == 1) ? selectedColor : defaultColor;
+        buttonOption2.image.color = (option == 2) ? selectedColor : defaultColor;
 
         // Submit-Button einblenden
         submitButton.gameObject.SetActive(true);
