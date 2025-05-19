@@ -1,32 +1,32 @@
 using UnityEngine;
 
 
-
-public class Card3GrabProxy : MonoBehaviour
+public class BackgroundTopGrabProxy : MonoBehaviour
 {
     public Transform cardVisual;
     public Transform grabHandle;
 
-    private UnityEngine.XR.Interaction.Toolkit.Interactables.XRGrabInteractable grabInteractable;
-    private Vector3 initialPosition;
-    private Quaternion initialRotation;
     private Vector3 localGrabOffset;
     private Quaternion localGrabRotation;
+    private UnityEngine.XR.Interaction.Toolkit.Interactables.XRGrabInteractable grabInteractable;
+
+    private Vector3 initialPosition;
+    private Quaternion initialRotation;
 
     void Awake()
     {
         grabInteractable = GetComponent<UnityEngine.XR.Interaction.Toolkit.Interactables.XRGrabInteractable>();
 
-        if (cardVisual != null)
-        {
-            initialPosition = cardVisual.position;
-            initialRotation = cardVisual.rotation;
-        }
-
         if (grabHandle != null && cardVisual != null)
         {
             localGrabOffset = cardVisual.InverseTransformPoint(grabHandle.position);
             localGrabRotation = Quaternion.Inverse(cardVisual.rotation) * grabHandle.rotation;
+        }
+
+        if (cardVisual != null)
+        {
+            initialPosition = cardVisual.position;
+            initialRotation = cardVisual.rotation;
         }
     }
 
@@ -51,15 +51,14 @@ public class Card3GrabProxy : MonoBehaviour
         {
             Transform cameraTransform = Camera.main.transform;
             Vector3 forwardOffset = cameraTransform.forward * 0.7f;
-			Vector3 verticalOffset = Vector3.down * 0.10f;
-            Vector3 spawnPosition = cameraTransform.position + forwardOffset + verticalOffset;
+            Vector3 spawnPosition = cameraTransform.position + forwardOffset;
             Quaternion spawnRotation = Quaternion.LookRotation(cameraTransform.forward, Vector3.up);
 
             //Auskommentiert wegen besserem spawnen.
             //cardVisual.position = initialPosition;
             cardVisual.rotation = initialRotation;
             cardVisual.position = spawnPosition;
-            //cardVisual.rotation = spawnRotation;
+            // cardVisual.rotation = spawnRotation;
         }
     }
 }
