@@ -109,6 +109,12 @@ namespace UnityEngine.XR.Templates.MR
         [SerializeField] private GameObject m_BackgroundBottom;
         [SerializeField] private GameObject m_Optionen;
         [SerializeField] private GameObject m_BackgroundTimer;
+        [SerializeField] private GameObject m_GrabHandleCard3;
+        [SerializeField] private GameObject m_GrabHandleOptionen;
+        [SerializeField] private GameObject m_GrabHandleBottom;
+        [SerializeField] private GameObject m_GrabHandleLeft;
+        [SerializeField] private GameObject m_GrabHandleRight;
+        [SerializeField] private GameObject m_GrabHandleTop;
         // Felder für Card 3 Startposition und -rotation
         private Vector3 m_Card3StartPosition;
         private Quaternion m_Card3StartRotation;
@@ -1119,11 +1125,14 @@ namespace UnityEngine.XR.Templates.MR
         */
 
         /// <summary>
-        /// Setzt die Position und Rotation des GrabProxys von Card 3 zurück, damit Card 3 beim nächsten Öffnen korrekt platziert wird.
+        /// Setzt alle Panels in Card 3 auf ihre ursprüngliche Position zurück.
         /// </summary>
-        public void ResetCard3Proxy()
+        public void ResetAllCard3Panels()
         {
-            var grabHandle = GameObject.Find("GrabHandle");
+            Debug.Log("[DEBUG] ResetAllCard3Panels() aufgerufen");
+
+            // Haupt-GrabHandle zurücksetzen
+            var grabHandle = GameObject.Find("GrabHandle_Card3");
             if (grabHandle != null && m_Card3PositionSaved)
             {
                 grabHandle.transform.position = m_Card3StartPosition;
@@ -1134,6 +1143,98 @@ namespace UnityEngine.XR.Templates.MR
             {
                 Debug.LogWarning("[DEBUG] GrabHandle nicht gefunden oder Startposition nicht gespeichert.");
             }
+
+            // Background_Left zurücksetzen
+            var backgroundLeftProxy = GameObject.FindObjectOfType<BackgroundLeftGrabProxy>();
+            if (backgroundLeftProxy != null)
+            {
+                backgroundLeftProxy.ResetPosition();
+                Debug.Log("[DEBUG] BackgroundLeftGrabProxy zurückgesetzt.");
+            }
+            else
+            {
+                Debug.LogWarning("[DEBUG] BackgroundLeftGrabProxy nicht gefunden.");
+            }
+
+            // Background_Right zurücksetzen
+            var backgroundRightProxy = GameObject.FindObjectOfType<BackgroundRightGrabProxy>();
+            if (backgroundRightProxy != null)
+            {
+                backgroundRightProxy.ResetPosition();
+                Debug.Log("[DEBUG] BackgroundRightGrabProxy zurückgesetzt.");
+            }
+            else
+            {
+                Debug.LogWarning("[DEBUG] BackgroundRightGrabProxy nicht gefunden.");
+            }
+
+            // Background_Top zurücksetzen
+            var backgroundTopProxy = GameObject.FindObjectOfType<BackgroundTopGrabProxy>();
+            if (backgroundTopProxy != null)
+            {
+                backgroundTopProxy.ResetPosition();
+                Debug.Log("[DEBUG] BackgroundTopGrabProxy zurückgesetzt.");
+            }
+            else
+            {
+                Debug.LogWarning("[DEBUG] BackgroundTopGrabProxy nicht gefunden.");
+            }
+
+            // Background_Bottom zurücksetzen
+            var backgroundBottomProxy = GameObject.FindObjectOfType<BackgroundBottomGrabProxy>();
+            if (backgroundBottomProxy != null)
+            {
+                backgroundBottomProxy.ResetPosition();
+                Debug.Log("[DEBUG] BackgroundBottomGrabProxy zurückgesetzt.");
+            }
+            else
+            {
+                Debug.LogWarning("[DEBUG] BackgroundBottomGrabProxy nicht gefunden.");
+            }
+
+            // Background_Optionen zurücksetzen
+            var backgroundOptionenProxy = GameObject.FindObjectOfType<BackgroundOptionenGrabProxy>();
+            if (backgroundOptionenProxy != null)
+            {
+                backgroundOptionenProxy.ResetPosition();
+                Debug.Log("[DEBUG] BackgroundOptionenGrabProxy zurückgesetzt.");
+            }
+            else
+            {
+                Debug.LogWarning("[DEBUG] BackgroundOptionenGrabProxy nicht gefunden.");
+            }
+
+            // Card3GrabProxy ebenfalls zurücksetzen (inkl. GrabHandle)
+            var card3GrabProxy = GameObject.FindObjectOfType<Card3GrabProxy>();
+            if (card3GrabProxy != null)
+            {
+                card3GrabProxy.ResetPosition();
+                Debug.Log("[DEBUG] Card3GrabProxy zurückgesetzt.");
+            }
+            else
+            {
+                Debug.LogWarning("[DEBUG] Card3GrabProxy nicht gefunden.");
+            }
+        }
+        public void ToggleAllGrabHandles(bool visible)
+        {
+            if (m_GrabHandleCard3 != null)
+                m_GrabHandleCard3.SetActive(visible);
+
+            if (m_GrabHandleOptionen != null)
+                m_GrabHandleOptionen.SetActive(visible);
+
+            if (m_GrabHandleBottom != null)
+                m_GrabHandleBottom.SetActive(visible);
+
+            if (m_GrabHandleLeft != null)
+                m_GrabHandleLeft.SetActive(visible);
+
+            if (m_GrabHandleRight != null)
+                m_GrabHandleRight.SetActive(visible);
+
+            if (m_GrabHandleTop != null)
+                m_GrabHandleTop.SetActive(visible);
         }
     }
 }
